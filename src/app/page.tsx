@@ -2,20 +2,32 @@
 
 import { useState, useEffect } from "react";
 import MultiSectionInspector from "@/components/MultiSectionInspector";
-import { Key, ExternalLink, AlertTriangle } from "lucide-react";
+import { Key, ExternalLink, AlertTriangle, Loader2 } from "lucide-react";
 
 export default function Home() {
   const [apiKey, setApiKey] = useState<string>("");
   const [inputKey, setInputKey] = useState<string>("");
   const [isKeySet, setIsKeySet] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Check for stored API key on mount
+  // Check for environment variable or stored API key on mount
   useEffect(() => {
+    // First check environment variable
+    const envKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (envKey) {
+      setApiKey(envKey);
+      setIsKeySet(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Fall back to localStorage
     const storedKey = localStorage.getItem("gemini_api_key");
     if (storedKey) {
       setApiKey(storedKey);
       setIsKeySet(true);
     }
+    setIsLoading(false);
   }, []);
 
   const handleSetApiKey = () => {
@@ -32,6 +44,15 @@ export default function Home() {
     setInputKey("");
     setIsKeySet(false);
   };
+
+  // Show loading while checking for API key
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
 
   if (!isKeySet) {
     return (
@@ -115,18 +136,23 @@ export default function Home() {
     );
   }
 
+  // If using env variable, don't show the change key button
+  const isUsingEnvKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
   return (
     <div className="relative">
-      {/* API Key Management */}
-      <div className="absolute top-4 right-4 z-10">
-        <button
-          onClick={handleClearApiKey}
-          className="px-3 py-1.5 bg-slate-700/80 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors flex items-center gap-2"
-        >
-          <Key className="w-4 h-4" />
-          Change API Key
-        </button>
-      </div>
+      {/* API Key Management - only show if not using env variable */}
+      {!isUsingEnvKey && (
+        <div className="absolute top-4 right-4 z-10">
+          <button
+            onClick={handleClearApiKey}
+            className="px-3 py-1.5 bg-slate-700/80 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Key className="w-4 h-4" />
+            Change API Key
+          </button>
+        </div>
+      )}
 
       <MultiSectionInspector apiKey={apiKey} />
     </div>
